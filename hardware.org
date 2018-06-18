@@ -1,0 +1,325 @@
+#+TITLE: DAQ Hardware Information Collection
+  :PROPERTIES:
+  :CUSTOM_ID: daq-hardware-information-collection
+  :END:
+
+* Table of Contents
+
+- [[#vme-moduels][VME Moduels]]
+
+  - [[#mtdc-32][MTDC-32]]
+  - [[#madc-32][MADC-32]]
+  - [[#mqdc-32][MQDC-32]]
+
+- [[#preamplifer-shaper][Preamplifer & Shaper]]
+
+* VME Moduels
+  :PROPERTIES:
+  :CUSTOM_ID: vme-moduels
+  :END:
+
+** VME basics[fn:1]
+   :PROPERTIES:
+   :CUSTOM_ID: vme-basics
+   :END:
+VEM stands for VERSA Module Eurocard. However, the origin of the term 'VME' has never been formally defined.
+It is orginally a combination of VERSAbus electrical standard and the Eurocard mechanical form factor.
+Anyone can make VMEbus products without any royalty fees or licenses.
+
+- VME Specifications[fn:3]:
+The VMEbus specification has been refined through VMEbus Revision A, B, C, C.1, IEC 821, IEEE 1014-1987 and ANSI/VITA 1-1994.
+VME and VME64 lie in the core of the VME specification family, as they define the most basic functions of the bus.
+
++---------+---------------------+------+----------------------------------------------------------------------------------------+
+| Name    | Standard            | Year | Features                                                                               |
++---------+---------------------+------+----------------------------------------------------------------------------------------+
+| VME     | ANSI/IEEE 1014-1987 | 1987 | P1/J1, P2/J2, two 96 DIN 41612 connector. A32 D32, max 40MB/s                                        |
++---------+---------------------+------+----------------------------------------------------------------------------------------+
+| VME64   | ANSI/VITA 1-1994    | 1994 | Multiplexed 64 bits, A64 D64, max 80MB/s. Introduced CR/CSR                                               |
++---------+---------------------+------+----------------------------------------------------------------------------------------+
+| VME430  |                     | 1990 | Add Paus/Jaux 30 pin DIN connector for DC power, GEO addressing and 3 differential bussed signals (clock/timing) |
++---------+---------------------+------+----------------------------------------------------------------------------------------+
+| VME64x  | ANSI/VITA 1.1-1997  | 1996 | New P1/J1, P2/J2 160 pin connectors. New P0/J0 95 pin connector in the middle row. 160 MB/s. Geographical addressing. 3.3V and +5V power supply. More user-defined I/O pins. Live insertion/Hot swap.                                |
++---------+---------------------+------+----------------------------------------------------------------------------------------+
+| VME64xP | ANSI/VITA 23-1998   | 1998 | Add CBLT/MCST protocol                                                                 |
++---------+---------------------+------+----------------------------------------------------------------------------------------+
+| VXI     |                     | 1987 | VME extension for instrumentation                                                      |
++---------+---------------------+------+----------------------------------------------------------------------------------------+
+| 2eSST   |                     | 2003 | Up to 320MB/s                                                                          |
++---------+---------------------+------+----------------------------------------------------------------------------------------+
+| VXS     |                     | 2003 | Serial high speed fabric                                                               |
++---------+---------------------+------+----------------------------------------------------------------------------------------+
+
+- Evolution of VMEbus specification
+  1. VME/VME64
+  2. 
+  3. 
+  4. 
+ 
+- VME Backplane Pin Assignment
+
+- Maximum Speed of different VME specification
+| Specification    | Bus Cycle | Maximum Speed |
+|------------------+-----------+---------------|
+| VMEbus/IEEE-1014 | BLT       | 40MB/s        |
+| VME64            | MBLT      | 80MB/s        |
+| VME64x           | 2eVME     | 160MB/s       |
+| VME64x/VME320    | 2eSST     | 320MB/s       |
+
+ 
+- VMEBus has three kinds of entities:
+  - System controller/Bus arbitor: arbitration and monitoring the system's state, installed on slot 1
+  - Master: initiate transactions on bus. All CPUs, DMA-capable devices
+    are bus master, as are most disks or network devices. In most cases,
+    cards capable of being bus masters can also respond as slaves.
+  - Slave: responds to transactions within its memory window. All memory
+    devices and most graphic devices are bus slaves.
+
+- VME (excluding 2eSST) is an asynchronous bus with 16MHz clock
+
+- Address space of slaves is: Address = BaseAddress + OffsetAddress.
+
+  There're three ways to assign the base address for each board in
+  slots:
+  - Base Addresses set by hardware jumpers
+  - Geographical Address by the position of the slave in the crate (only
+    in VME64x)
+  - Address Relocation by some registers of the slave using software
+    (only in VME64x)
+
+- Readout mode:
+  - Single Cycle (D16/D32)
+  - BLT32/MBLT64
+  - CBLT32/CMBLT64
+
+- Multi CaSt Write (MCST) is a single write cycle that involves several
+  slaves in the crate:
+  - Same propagation mechanism as CBLT32
+  - Master initiates the cycle like a normal single write.
+  - The slaves get the data in sequence and the last one asserts the
+    DACK
+  - The modules in the chain should be continuous (MCST/CBLT)
+  - The backplane should be CBLT-compatible
+  - VME64xP (VMEBus International Physics Association) introduced CBLT
+    and MCST.
+   
+- MCST/CBLT defined by VIPA in VME64xP specificatio[fn:2]
+  Chained Block Transfers(CBLT) and Multicast(MCST) commands are special protocols orginally developed
+  for High Energy Physics. 
+  Neither MCST nor CBLT require specific features in the bus master or additional backplane resources.
+  Some restrictions are placed on the placement of Modules and the wiring of IACK* daisy chain. Also,
+  the users should be aware of the restrictions on the use of CBLT and MCST with VMEbus backplanes eq-
+  uipped with active, automatic daisy chain jumpering.
+
+- Interrupts
+
+  Many devices implement more than one componet in a single module.
+
+- Termination
+
+  In order to prevent interference on signal lines which might result from reflection at open line ends, these lines must be terminated on VMEbus.
+  - Active termination advantage: reduced closed-circuit current consumption
+  - Passive termination advantage: better frequency response and wider temperature range
+
+- Daisy chain wiring
+  - Automatic daisy chaining: 
+    Works without jumper, i.e. the user does not need to bother with plugging in and removing jumpers. This has the advantage that incorrect
+    jumper placement due to operator error is precluded.
+    - Mechanical way: Use connectors with integrated mechanincal switches. The conatact is automatically opened when a daughter board is inserted
+      and closed when the board is removed.
+    - Electronic way: Use the OR logic integrated in the backplane. This logic closes the daisy chain when the daughter board is removed.
+  - Manual daisy chaining: Use jumper for chaining
+[[file:daisy%20chain.png][Automatic VS Manual Daisy Chaining]]
+
+** Crate: Wiener VME430 6021
+   :PROPERTIES:
+   :CUSTOM_ID: crate-wiener-vme430-6021
+   :END:
+
+- Bus protocol: CERN VME430 and VITA VME/VME64(ANSI/IEEE-1014-1987 and
+  ANSI/VITA 1-1994)
+- Backplane: J1/Jaux/J2
+- Active termination
+- Active automatic-daisy-chain
+- Ehternet, RS232, CAN-bus for control and monitor
+
+** Common Features of MXDC modules
+   
+   + Multi-event buffer
+   +
+
+*** Single Event Mode
+    Single Event Mode will change the behaviour of the frontend part of the module considerably.
+    In single event mode (*MultiEvent register 0x6036 = 0*), the front end of the module will work starting with an external gate or trigger.
+    The data of this event are then stored in a memory and wait for the VME readout. 
+    *Gates comming after will be ignored (IMPORTANT).*
+    Only after readout of the data and the readout reset (0x6034 is written), the new gate is allowed to enter and the module starts the new conversion.
+    So, only one single event data are present in the buffer all the time.
+    
+    Setting irq_threshold (0x6018 or 0x601E) is not necessary in this mode. Once the single event is written to the buffer, the IRQ will be generated.
+    User only needs to set irq_vector (0x6012) and irq_level (0x6010) to enable the IRQ function.
+    irq_threshold can be set to any value.
+    
+    The Max_transfer_data register (0x601A) is not active in this mode.
+    So setting it or not is not critical either.
+    
+    In this mode, after each readout reset (writing to 0x6034), the remaining data in the FIFO will be cleared and the module will wait for the next gate for conversion.
+    Thus, user needs to readout the whole event data for each IRQ generated. 
+    Otherwise, the data is gone. This is different from Muli-Event Mode.
+    
+    When multiple modules are used in this mode, the synchronization is automatically guaranteed by the single event mode as long as the slowest module are used as IRQ source for readout.
+    
+    There are two readout strategies:
+    - Subjective one:
+      1. Wait for IRQ to start readout of an event.
+      2. Read buffer_data_length (register 0x6030) for event length.
+      3. Read /event_length+1/ words from FIFO
+      4. Write readout reset (0x6034) to allow next gate/trigger coming in.
+    - Objective one:
+      1. Wait for IRQ to start readout of an event.
+      2. Start block transfer until BERR on VME-bus (i.e. by reading out rediculously large number of words)
+      
+*** TODO Multi Event Mode 
+    In multi-event mode (0x6036 = 1 or 3), the front-end part of the module is decoupled from the readout by an buffer.
+    So the front-end part is ready for a new gate/trigger after the conversion time of the module.
+    
+    The irq_threshold is activated in the multi-event mode. After the data words in the buffer exceeds the irq_threshold, an irq can be generated.
+    
+    There are two multi-event mode: the unlimitted transfer(0x6036=1) and the limitted transfer (0x6036=3).
+    In the unlimitted multi-event mode (0x6036 =1), the data from the module can be readout without limitation. 
+    
+    The unlimitted mode is seldomly used in most applications, because the event boundary between two consecueive readout is not guranteed.
+    Also, CBLT can't be used together with the unlimitted multi-event mode. Because the front-end part of MXDC modules are much faster than the readout rate of VMEbus.
+    In extreme conditions, there input to the buffer are faster than the output, so there will never be an BERR, which is not suitable for CBLT.
+    
+    In the limmitted multi-event mode, the Max_transfer_data register is activated, which determines the maximum data words to transfer before ending the transfer at the next end of event words.
+    The event boundary is preserved between two consecuetive readout.
+    
+    A readout reset at the end of each readout cycle is recommended, because the new IRQ will not be generated if the readout does not drive the FIFO fill level below irq_threshold.
+    In the extreme case, the input rate can be fater than the readout rate, then the irq will never be generated without readout_reset.
+    
+** MTDC-32
+   :PROPERTIES:
+   :CUSTOM_ID: mtdc-32
+   :END:
+   
+*** Design
+    [[file:tdc_design.jpeg][TDC Design]]
+
+*** info collection
+    :PROPERTIES:
+    :CUSTOM_ID: info-collection
+    :END:
+
+**** Working mode
+     Time difference mode and Pure timestamp mode. Time difference mode relies on pure timestamp mode.
+     It is internally realised as a 32 + 2 channel time stamper.
+     It is based on 34 free running interpolation TAC with a bit resolution of 1ps. The interpolation interval is 4ns.
+     Longer times are measured by counting the number of intervals .
+     In the matching unit the time within the interval has to be added to the correct counter value. 
+     Each channel operates completely independent and delivers a 48 bit time stamp[fn:4].
+     #+CAPTION: TDC Working Principle
+     #+NAME: fig:tdc_working_principle
+     [[file:tdc_principle.jpeg][TDC Working Principle]]
+     
+#+CAPTION: Comparison of two working mode
+#+NAME: tab:work_mode
+|                 | Time Difference(Start-Stop mode)                      | Pure Time Stamp                                                    |
+|-----------------+-------------------------------------------------------+--------------------------------------------------------------------|
+| Data            | \Delta{}T = TimeStamp_hit - TimeStamp_trigger , 16 bits        | Hit TimeStamp, 30+16= 46 bits                                      |
+| Resolution      | Configurable through register: min=1ns/256, max=500ps | Fixed: 1ns/256 \approx 3.9ps                                             |
+| Trigger         | Common Trigger                                        | No Trigger needed                                                  |
+| Channel         | 32                                                    | 32+2= 34                                                           |
+| Event Structure | one trigger = one event, valid data in DataWord       | one hit = one event, valid data in DataWord(16)+EndofEventWord(30) |
+|                 |                                                       |                                                                    |
+    
+    + Conversion time: 160 ns
+    + Internally realized as a 32+2 chennel time stamper
+    + The event time stamping has nothing to do with the high resolution time stamping of the TDC.
+    + The event timestamp is a rough time tag for event structures, to synchronise simultaneously converted events in different modules. 
+      Time basis is an external oscillator or the VME clock (16 MHz). The feature is identical to the other mesytec VME-modules: MADC-32, MQDC-32, MTDC-32, MDI-2.
+    + Maximum external reference oscillator frequency: 75 MHz
+    + Reset timestamp counter through MCST or front-panel input (NIM,TTL, ECL, LVDS)
+      
+**** Time difference mode
+     Window of Interest:
+     - Can be delayed to avoid external delay line
+     - Delay: [-16us,16us] in step unit of 1ns
+     - Width: max. = 64k \times ChannelRes, step unit = 1ns
+     - All hits within Window of Interest will be saved
+     - Also only the first hit can be saved
+     - Max. hits in one event = 240 hits
+** MADC-32
+     :PROPERTIES:
+     :CUSTOM_ID: madc-32
+     :END:
+
+** MQDC-32
+   :PROPERTIES:
+   :CUSTOM_ID: mqdc-32
+   :END:
+
+* TODO Preamplifer & Shaper
+  :PROPERTIES:
+  :CUSTOM_ID: preamplifer-shaper
+  :END:
+
+** MPR-16
+
+** MSCF-16
+
+** MPR-1
+
+** CAEN N968
+
+** ORTEC 571
+
+** ORTEC 433A
+   
+* Terminology
+** Daisy Chain 
+[[https://en.wikipedia.org/wiki/Daisy_chain_(electrical_engineering)][From Wikipedia:]]
+#+BEGIN_QUOTE
+Daisy chain is a wiring scheme in which multiple devices are wired together in sequence or in a ring.
+#+END_QUOTE
+
+There are five daisy chain signals on the VMEbus. Four are used for bus arbitration (Bus Grant Lines), BG#IN and BG#OUT (# = 0-3).
+One is used for interrupt acknowledge, IACKIN and IACKOUT. 
+
+Daisy chain signal propagates down a backplane starting from slot one by entering the connector on an input pin and exiting the connector on a separate pin.
+A board plugged into a connector is responsible for providing continuity btweeen the input pin and the output pin.
+If the slot is empty, then a jumper on the backplane can be used to provide continuity between input and output.
+When the jumper is installed the input pin is connected directly to the output pin. When the jumper is not installed the daisy chain is broken.
+
+*Automatic daisy chaining* in connectors automatically shorts both bus grant in/out pins and the interrupt acknowledge in/out pins together whenever a board is removed.
+Thus the jumpering issue is automated.
+*** Bus Arbitration
+When multiple Master exist on the same VMEbus, bus arbitration is needed.
+Four bus request lines and four bus grant in/out daisy chain lines are used for this purpose. And the bus arbitor is needed in slot one.
+
+- Master module should first request bus by asserting one of the bus request lines.
+- Based on specific rules (round robin arbitration/prioritized arbitration), the arbitor will grant the bus by asserting the corresponding bus grant signal line.
+- This grant signal will propagate along the bus grant line through all the modules on the way, until it reaches the Master module which asserts the same level bus request line.
+- Finally, this Master module claims the bus by driving Bus Busy signal(BBSY).
+
+In case that there're multiple Master modules requesting on the same level at the same time, the Master module closet to slot one will receive the bus.
+Because the grant signal will first reach the closest one.
+
+*** Interrupt Acknowledge
+THe VMEbus interrupt subbus provides seven levels of interrupt requests with IRQ1* being the lowest and IRQ7* being the highest.
+- Any module on the bus may request an interrupt by driving one of the interrupt request lines.
+Also, it is likely that two or more boards will interrupt on the same interrupt level at the same time.
+- And any Master module can respond to any of the interrupt request lines by arbitrating for the bus, asserting IACK* and echoing the interrupt level on A1-A3.
+- The bus arbitor then places the IACKOUT* on the interrupt daisy chain. The interrupt will be granted to the interrupt closest to slot one that requested the same interrupt level at the same time.
+- The interrupting module will then provide a status-id on the data bus that allow the interrupt handler to distinguish between interrupters sharing the same interrupt request levels.
+
+* Footnotes
+
+[fn:4] 48 bits timestamp is generated, however only the higher 46 bits are used for output. Thus the highest resolution of the TDC is about 4ps. This is my own understanding.
+
+[fn:3] 'P' refers to PLUG connectors on the bus modules, and 'J' refers to JACK connectors on the backplane.
+
+[fn:1] Introduction to VME/VXI/VSI Standards (http://file.wiener-d.com/documentation/General/WIENER_VME_VXI_VXS_introduction_1.0.pdf)
+
+[fn:2] ANSI/VITA 23-1998, American National Standard for VME64 Extensions for Physics and Other Applications
+

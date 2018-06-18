@@ -1,0 +1,51 @@
+#+TODO: Unclear
+* LMD DAQ Key Facts
+** HV-MAPS: High Voltage Monolithic Active Pixel sensors
+   MAPS is a pixel sensors concept which combines front-end electronics with sensitive material on one chip.
+   Three parts on one chip (one die):
+   [[file:hv-cmos.jpeg][HV-CMOS Layout Schematic]]
+
+*** Characteristics
+    - HV: 50-60V
+    - Depletion thickness: 10 um
+    - Primary electron-holes: 700
+    - Pixel size: $$80\times80{\mu}m^2\$$
+*** TODO MuPix (real prototype chip)
+**** Structure Layout:
+    - Sensor
+    - Analog electronic circuit
+    - Digital electronic circuit
+    - Readout control circuit
+    - Fast data serializer circuit
+**** Timestamp generation on chip
+     - Gray counter
+** Electronic chain
+   [[file:mupixv7_electronic_layout.jpeg][MuPix7 Electronic Signal Layout]]
+*** Front-end (in sensor chip, integrated within pixel)              :OnChip:
+**** AC-coupling
+**** Charge-Sensitive Amplifier
+*** TODO Digital-part (also in sensor chip, located on one side of the chip) :Undecided:OnChip:
+**** Second amplifer (Optional)
+**** CR-RC Shaping (shaping time: 1 us)
+**** Discriminator
+**** TODO Time-to-Digit (Timestamp generated)
+     - accept external clock: 20/40 MHz. The clock is used to drive the gray counter for timestamp generation and the serilizer logic.
+     - pixel address and timestamp
+     - 8/10 bits serialization using LVDS
+     - generate higher clock speed internally to improve timestamp accuracy: max. 10ns
+*** DAQ
+**** FPGA-Boards (TRBv3)
+     TRBv3 is an abbreviation of "General Purpose Trigger and Readout Board—version 3".
+     And the TRB-family (according to TRB website: [[http://trb.gsi.de/)]] contains a versatile FPGA-platform, TDC-in-FPGA technology with 10ps precision, front-end electronics and a complete set of data acquisition and control software.
+     For LMD, TRBv3 is used as a versatile FPGA-platform with following functions:
+     - receive the incoming serial data stream from the HV-MAPS
+     - perform a clock recovery
+     - de-serialize the data stream
+     - compatible with SODA and correlate the SODA time with the encoded data time.
+     
+**** PANDA DAQ Infrastructure
+***** SODAnet: Clock distribution, synchronization, reset
+      SODA is an abbreviation of "Synchronization Of Data Acquisition".
+***** PANDA Concentrator
+***** PANDA event builder
+***** PANDA computing farm
