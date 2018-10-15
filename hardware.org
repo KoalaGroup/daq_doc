@@ -259,6 +259,21 @@ VME and VME64 lie in the core of the VME specification family, as they define th
    :CUSTOM_ID: mqdc-32
    :END:
 
+*** Characteristics
+
+    - 4 channels as a group and readout by 1 ADC and have the range (totally 8 ADCs)
+    - the sensivity of each group can be adjusted by the Gain Jumper at the input stage ( for the QDC we have: channel 1-4, it's 3 nC; channel 5-32, it's 500 pC)
+    - the connector for the individual gate is on the left side indicated as 'Gates' on the front panel; the connector for the signals is on the right side indicated as 'Inputs' on the front panel
+    
+      #+CAPTION: Layout of the GainJumper
+      #+NAME: fig::qdc_sensitivity
+      [[file:qdc_sensitivity.jpg]]
+      
+      #+CAPTION: Position of the connector for Gates and Signals
+      #+NAME: fig::qdc_connector
+      [[file:qdc_connector.jpg]]
+    - ADC range: sliding scale (12 bits, but 3840 is already over overange)
+    - 
 * TODO Preamplifer & Shaper
   :PROPERTIES:
   :CUSTOM_ID: preamplifer-shaper
