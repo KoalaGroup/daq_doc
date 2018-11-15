@@ -246,9 +246,32 @@ VME and VME64 lie in the core of the VME specification family, as they define th
      - Can be delayed to avoid external delay line
      - Delay: [-16us,16us] in step unit of 1ns
      - Width: max. = 64k \times ChannelRes, step unit = 1ns
-     - All hits within Window of Interest will be saved
-     - Also only the first hit can be saved
+     - All hits or the first hit within Window of Interest will be saved
      - Max. hits in one event = 240 hits
+     - The difference in the data words is 16 bits, and the unit is resolution.
+       The difference is calculated after the delay offset, thus the value for the trigger channel is always a delta function with center of the delay value/resolution
+     
+     The trigger source channel will be recorded if it lies within the window of interest.
+     For example, if the NIM0 is selected as trigger input and the window delay is selected as -50 ns and window width is >50 ns,
+     then it will be recorded in channel 33 and the value is 50 ns (delta distribution).
+
+**** Input stage
+     - There are two sets of input jumpers for unipolar signals and differential signals respectively
+     - For both sets of jumper, the termination can be configured by the jumper position
+     - The differential jumper allows ECL, LVPECL, LVDS signal level; while the unipolar jumper allows for NIM, TTL, analogure positive or negative signals
+     - For unipolar jumpers, an extra configuration for the threshold is needed; while for differential jumpers, this step is not needed.
+       
+**** Edge selection
+     - For each bank, the edge for hit generation can be selected by confuring register 0x6060
+     - TODO: the edge definition for unipolar and differential signals.
+     - Each bank can only work on one edge generation. So if TOT is needed, then bank0 and bank1 should be used in parrallel.
+       The signal should be splitted and one is fed into bank0 for leading edge measured, the other fed into bank1 for trailing edge measurement.
+
+**** First Hit or Multi Hits
+     - TDC can be configured to store only the first hit in the window of interest OR all the hits in the window of interest (0x605c)
+
+**** Unit of Raw ADC counts
+     unit of raw ADC counts is the resolution of TDC.
 ** MADC-32
      :PROPERTIES:
      :CUSTOM_ID: madc-32
@@ -272,8 +295,32 @@ VME and VME64 lie in the core of the VME specification family, as they define th
       #+CAPTION: Position of the connector for Gates and Signals
       #+NAME: fig::qdc_connector
       [[file:qdc_connector.jpg]]
-    - ADC range: sliding scale (12 bits, but 3840 is already over overange)
-    - 
+    - ADC range: sliding scale (12 bits, 1/16 range is used for sliding, thus 3840 is already over overange)
+    - Gate Jumper should be configured according to sensitivity (differnet jumper) and polarity (jumper position)
+    - The individual gate input should be terminated by register (0x6062); the signal input is terminated in hardware without register setting
+    - Timestamp is created at the end of the master gate (this is different from MTDC32 and MADC32, in which the timestamp is created at the beginning of the master gate)
+      And the timestamp is always created by the master gate, whether the experiment trigger is used or not.
+    - Timestamp is based on the VME bus clock, which is 16MHz (62.5ns).
+      If external clock source is used, then it's based on external clock frequency. External clock can be input from NIM2/ECL2 (see register 0x6064/0x606a and 0x6096).
+    - A Shift signal can be added to the integrated voltage before digitization. This allows conversion of slightly negative signals.
+      (register 0x6044 and 0x6046 for bank0 and bank1 respectively; 255 correspond to 730 ADC counts according to measurement in lab).
+    - Experiment trigger i.e. delay mode. The experiment trigger only used for event selection, no real measurement is related to it.
+      If there in not event matched with an experiment trigger, this event will still be recorded in the buffer and can be readout. The event timestamp is 0 in this case.
+      And of course, there will be no channel data in this event as well.
+      The gate delay register unit is ns.
+    - Threshold (after the offset and digitization)
+    - Multiplicity (after the offset and digitization). If the multiplicity condition is not fullfilled, this event will be rejected and not saved in the data buffer (CAUTION for readout in this case).
+      Because of this phenomenon, this multiplicity register should never be activated in KoalaEms.
+    - Gate Limiter (for Pulse shape discrimantion applications) is not needed in KoalaEms.
+    - MCFD16 time sequence and how to calculate the cable lenghth (in particular, the CFD delay time calculation?)
+    - only event number of QDC words will be tranfered
+    - the final gate is the AND of individual gate and master gate. If the individual gate connector is not connected, the only master gate is needed.
+      If the individual gate connector is connected (to another working module), and there is no individual gate generated, then there is not data digitized in this channel.
+    - Each channel can be switched off by setting threshold to 0x1fff. If all channels are switched off, then this event still exists in the data buffer and consists of only header and trailer.
+    - Decoding: when no data in channel, the decoded value is defined as UNDERFLOW, which is -5; when the signal is out of range, the decoded value is OVERRANGE, which is 0x10000
+    - Pedestals: the width of the pedestal is proportional to the gate width, thus the gate width should not be too wide to get best resolution (200ns might be sufficient).
+
+*** TODO Mapping Table between functions, registers and procedures in KoalaEms
 * TODO Preamplifer & Shaper
   :PROPERTIES:
   :CUSTOM_ID: preamplifer-shaper
@@ -290,7 +337,14 @@ VME and VME64 lie in the core of the VME specification family, as they define th
 ** ORTEC 571
 
 ** ORTEC 433A
-   
+* Other NIM Modules
+** Discriminator
+*** CAEN N840
+*** CAEN N842
+** ECL-NIM-ECL
+*** CAEN N638
+** Individual Gate Generator for MQDC32
+*** Mesytec MCFD16
 * Terminology
 ** Daisy Chain 
 [[https://en.wikipedia.org/wiki/Daisy_chain_(electrical_engineering)][From Wikipedia:]]
